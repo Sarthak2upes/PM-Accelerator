@@ -8,9 +8,9 @@ Empowering professionals through AI, Product Management, and Technology innovati
 
 # Project Overview
 
-This project analyzes the **Global Weather Repository Dataset** and builds machine learning models to forecast weather trends, specifically temperature prediction.
+This project analyzes the Global Weather Repository dataset and develops machine learning models to forecast weather trends by predicting temperature using various atmospheric and environmental factors.
 
-The project covers the complete data science workflow including:
+The project demonstrates the complete data science workflow, including:
 
 * Data Cleaning and Preprocessing
 * Exploratory Data Analysis (EDA)
@@ -23,47 +23,50 @@ The project covers the complete data science workflow including:
 * Spatial Analysis
 
 Dataset Source:
-
 https://www.kaggle.com/datasets/nelgiriyewithana/global-weather-repository
 
 ---
 
 # Dataset Description
 
-The dataset contains weather information collected from locations around the world and includes:
+The dataset contains weather observations collected from locations around the world and includes:
 
 * Temperature
-* Wind Speed
+* Wind Speed and Direction
 * Humidity
 * Pressure
 * Cloud Cover
 * Visibility
 * UV Index
-* Air Quality Metrics
-* Geographical Coordinates
-* Astronomical Information
+* Air Quality Indicators
+* Latitude and Longitude
+* Astronomical Features
 
-The dataset contains approximately 149,000 weather observations and over 40 original features.
+The target variable used for forecasting is:
+
+```text
+temperature_celsius
+```
 
 ---
 
-# Data Cleaning and Preprocessing
+# Data Preprocessing
 
 ## Missing Values
 
-Missing numerical values were handled using median imputation.
+The dataset was checked for missing values using:
 
 ```python
-df.fillna(df.median(numeric_only=True), inplace=True)
+df.isnull().sum()
 ```
 
-Median imputation was selected because it is less sensitive to extreme weather observations than mean imputation.
+No significant missing values were found in the selected features used for modeling, therefore no missing value imputation was required.
 
 ---
 
 ## Duplicate Records
 
-Duplicate observations were removed.
+Duplicate records were identified and removed from the dataset.
 
 ```python
 df.drop_duplicates(inplace=True)
@@ -73,36 +76,34 @@ df.drop_duplicates(inplace=True)
 
 ## Outlier Handling
 
-Traditional IQR-based outlier removal was intentionally not used.
+Traditional IQR-based outlier removal was not used.
 
-Weather datasets often contain legitimate extreme observations such as:
+Weather datasets often contain genuine extreme observations such as:
 
 * Heatwaves
 * Storms
+* Heavy rainfall
 * High humidity events
-* Extreme precipitation events
 
-Removing such observations using IQR would remove meaningful climatic information.
+Removing these values using statistical techniques like IQR could remove meaningful weather information.
 
-Instead, domain-specific weather thresholds were applied.
+Instead, domain-based thresholds were applied using realistic meteorological limits such as:
 
-Examples:
+* Temperature: -60°C to 60°C
+* Humidity: 0% to 100%
+* Cloud Cover: 0% to 100%
+* Pressure: 870 mb to 1085 mb
+* UV Index: 0 to 15
 
-* Temperature between -60°C and 60°C
-* Humidity between 0% and 100%
-* Cloud Cover between 0% and 100%
-* Pressure between 870 mb and 1085 mb
-* UV Index between 0 and 15
-
-This approach preserves genuine weather extremes while removing physically impossible values.
+This approach preserves valid weather extremes while filtering physically impossible values.
 
 ---
 
 ## Feature Selection
 
-Several columns were removed before modeling.
+Several features were removed before model training.
 
-Removed features included:
+Removed features include:
 
 * temperature_fahrenheit
 * feels_like_celsius
@@ -113,31 +114,25 @@ Removed features included:
 * moonrise
 * moonset
 
-### Why were these removed?
+### Reason
 
-Some features were direct transformations of temperature.
+Some of these variables are directly derived from temperature.
 
-Examples:
+Including them would introduce target leakage and artificially improve model performance.
 
-* temperature_fahrenheit
-* feels_like_celsius
-* feels_like_fahrenheit
-
-Including them would introduce target leakage because the model could indirectly access the value it was trying to predict.
-
-The objective was to create a model that predicts temperature from independent weather conditions.
+The objective was to predict temperature from independent weather conditions rather than from variables calculated using temperature itself.
 
 ---
 
 ## Feature Scaling
 
-Min-Max Normalization was applied.
+Min-Max Normalization was applied to scale all features between 0 and 1.
 
 ```python
-MinMaxScaler()
+from sklearn.preprocessing import MinMaxScaler
 ```
 
-This scales all features to a common range between 0 and 1.
+Normalization helps ensure consistency across features measured on different scales.
 
 ---
 
@@ -147,41 +142,40 @@ The following analyses were performed:
 
 ### Temperature Distribution
 
-Understanding the spread of temperatures across global locations.
+Analyzed the distribution and spread of temperature values across the dataset.
 
 ### Precipitation Distribution
 
-Analyzing rainfall patterns.
+Examined rainfall patterns and precipitation variability.
 
 ### Correlation Heatmap
 
-Studying relationships between numerical weather variables.
+Studied relationships between weather variables.
 
-### Time-Based Temperature Trends
+### Time-Based Analysis
 
-Analyzing temperature variation using the timestamp information.
+Used the `last_updated` feature to analyze weather trends over time.
 
 ---
 
 # Climate Analysis
 
-Average temperatures were calculated for different countries.
+Average temperatures were calculated and compared across different countries.
 
-The hottest countries in the dataset were identified and visualized.
-
-This provides insight into long-term climate differences between regions.
+This analysis helped identify regions with higher and lower average temperatures and provided insight into climate variation across geographical locations.
 
 ---
 
 # Air Quality Analysis
 
-Relationships between temperature and air quality indicators were explored.
+Air quality indicators were analyzed against weather conditions.
 
-Example:
+Examples include:
 
 * PM2.5 vs Temperature
+* PM10 vs Temperature
 
-This helps investigate possible environmental relationships between pollution and weather conditions.
+This helped explore environmental relationships between pollution levels and weather variables.
 
 ---
 
@@ -193,7 +187,7 @@ Geographical weather patterns were visualized using:
 * Longitude
 * Temperature
 
-Scatter plots were used to observe how temperature varies across different geographical regions.
+Scatter plots were used to observe how temperature varies across different regions of the world.
 
 ---
 
@@ -205,43 +199,42 @@ Three forecasting models were developed and compared.
 
 ## Ridge Regression
 
-Ridge Regression was selected instead of standard Linear Regression.
+Initially, Linear Regression was tested as a baseline model.
 
-### Why not Linear Regression?
-
-The dataset contains many highly correlated variables.
-
-Examples include:
+However, the dataset contains several highly correlated variables, including:
 
 * wind_mph and wind_kph
 * pressure_mb and pressure_in
 * precip_mm and precip_in
 * gust_mph and gust_kph
 
-After one-hot encoding categorical variables, the dataset also contained hundreds of additional features.
+Additionally, one-hot encoding created many additional features.
 
-These conditions create multicollinearity.
+These conditions introduced multicollinearity, causing Linear Regression to become unstable and produce extremely poor predictions with highly negative R² values.
 
-Multicollinearity causes ordinary Linear Regression to become unstable and produce extremely poor predictions.
-
-During experimentation, Linear Regression produced very large errors and negative R² values.
+To address this issue, Ridge Regression was used.
 
 ### Why Ridge Regression?
 
-Ridge Regression introduces L2 Regularization, which helps:
+Ridge Regression applies L2 Regularization, which:
 
-* Reduce coefficient instability
-* Handle multicollinearity
-* Improve generalization
-* Prevent excessively large coefficients
-
-As a result, Ridge Regression produced significantly more stable predictions.
+* Reduces coefficient instability
+* Handles multicollinearity
+* Improves generalization
+* Produces more stable predictions
 
 ---
 
 ## Random Forest Regressor
 
-Random Forest was used to capture complex non-linear relationships in weather data.
+Random Forest was selected because weather systems often exhibit complex non-linear relationships.
+
+Advantages:
+
+* Captures non-linear patterns
+* Robust to outliers
+* Handles feature interactions effectively
+* Provides feature importance scores
 
 Configuration:
 
@@ -254,68 +247,54 @@ RandomForestRegressor(
 )
 ```
 
-Advantages:
-
-* Handles non-linear relationships
-* Robust to outliers
-* Less affected by multicollinearity
-* Provides feature importance scores
-
 ---
 
 ## Ensemble Model
 
-A Voting Regressor was created using:
+A Voting Regressor was built using:
 
 * Ridge Regression
 * Random Forest Regressor
 
-The objective was to combine the strengths of both models.
-
-```python
-VotingRegressor(
-    [
-        ("ridge", ridge),
-        ("rf", rf)
-    ]
-)
-```
+The purpose of the ensemble model was to combine the strengths of both approaches and improve forecasting performance.
 
 ---
 
 # Model Performance
 
-| Model            | MAE  | RMSE | R² Score |
-| ---------------- | ---- | ---- | -------- |
-| Ridge Regression | 3.21 | 4.33 | 0.794    |
-| Random Forest    | 2.80 | 3.87 | 0.835    |
-| Ensemble Model   | 2.67 | 3.66 | 0.853    |
+| Model                     | MAE  | RMSE | R² Score |
+| ------------------------- | ---- | ---- | -------- |
+| Ridge Regression          | 3.21 | 4.33 | 0.794    |
+| Random Forest Regressor   | 2.80 | 3.87 | 0.835    |
+| Voting Ensemble Regressor | 2.67 | 3.66 | 0.853    |
 
 ---
 
 # Feature Importance
 
-Feature importance was extracted from the Random Forest model.
+Feature importance analysis was performed using the Random Forest model.
 
-This helped identify the weather variables that contribute most to temperature prediction.
+This helped identify the most influential variables affecting temperature prediction.
 
-Examples of influential features include:
+Examples include:
 
 * Humidity
 * Pressure
 * Wind Characteristics
-* Air Quality Indicators
 * Cloud Cover
+* Air Quality Indicators
 
 ---
 
-# Results and Insights
+# Results
 
-* Domain-based cleaning preserved meaningful weather extremes.
-* Ridge Regression outperformed standard Linear Regression due to multicollinearity.
-* Random Forest effectively captured non-linear weather relationships.
-* The Ensemble Model achieved the best performance.
-* Air quality and geographical analyses provided additional environmental insights.
+Key findings from the project:
+
+* Domain-based filtering preserved meaningful weather extremes.
+* Ridge Regression successfully addressed multicollinearity issues.
+* Random Forest captured non-linear weather relationships effectively.
+* The ensemble model achieved the best forecasting performance.
+* Air quality and spatial analyses provided additional environmental insights.
 * The final ensemble model achieved an R² score of 0.853.
 
 ---
@@ -332,20 +311,19 @@ Examples of influential features include:
 
 ---
 
-# Future Improvements
+# Repository Structure
 
-* Time-series forecasting using dedicated forecasting models.
-* Hyperparameter optimization.
-* Gradient Boosting and XGBoost models.
-* More advanced climate trend analysis.
-* Interactive dashboards using Streamlit or Power BI.
+```text
+├── Weather_Forecasting_Assessment.ipynb
+├── README.md
+├── requirements.txt
+└── images/
+```
 
 ---
 
 # Author
 
-Sarthak Kothiyal
-
+**Sarthak Kothiyal**
 B.Tech Computer Science Engineering (AI & ML)
-
 UPES Dehradun
