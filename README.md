@@ -66,11 +66,8 @@ No significant missing values were found in the selected features used for model
 
 ## Duplicate Records
 
-Duplicate records were identified and removed from the dataset.
+No significant duplicate values were found in the selected features used for modeling, therefore no duplicate value imputation was required.
 
-```python
-df.drop_duplicates(inplace=True)
-```
 
 ---
 
